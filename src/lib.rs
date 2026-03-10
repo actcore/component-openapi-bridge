@@ -20,7 +20,7 @@ const DEFAULT_LANG: &str = "en";
 fn make_error(kind: &str, msg: String) -> act::core::types::ToolError {
     act::core::types::ToolError {
         kind: kind.to_string(),
-        message: act::core::types::LocalizedString::Plain(msg),
+        message: vec![(DEFAULT_LANG.to_string(), msg)],
         metadata: vec![],
     }
 }
@@ -37,6 +37,29 @@ fn parse_config(config: Option<&[u8]>) -> Result<BridgeConfig, act::core::types:
             act_types::constants::ERR_INVALID_ARGS,
             "Config with spec_url is required".to_string(),
         )),
+    }
+}
+
+/// Extract the origin (scheme + authority) from a URL.
+/// e.g. "https://example.com/path" -> "https://example.com"
+fn url_origin(url: &str) -> String {
+    if let Some((scheme, rest)) = url.split_once("://") {
+        let authority = rest.split('/').next().unwrap_or(rest);
+        format!("{scheme}://{authority}")
+    } else {
+        String::new()
+    }
+}
+
+/// Resolve a server base URL against the spec URL.
+/// If the server URL is relative (starts with /), prepend the spec URL's origin.
+fn resolve_base_url(spec_url: &str, server_url: &str) -> String {
+    if server_url.contains("://") {
+        // Absolute URL
+        server_url.to_string()
+    } else {
+        // Relative URL — resolve against spec origin
+        format!("{}{}", url_origin(spec_url), server_url)
     }
 }
 
@@ -149,7 +172,7 @@ fn to_wit_tool(tool: &tools::ResolvedTool) -> act::core::types::ToolDefinition {
 
     act::core::types::ToolDefinition {
         name: tool.name.clone(),
-        description: act::core::types::LocalizedString::Plain(tool.description.clone()),
+        description: vec![(DEFAULT_LANG.to_string(), tool.description.clone())],
         parameters_schema: schema_str,
         metadata,
     }
@@ -296,15 +319,11 @@ impl exports::act::core::tool_provider::Guest for OpenApiBridge {
             name: "openapi-bridge".to_string(),
             version: "0.1.0".to_string(),
             default_language: DEFAULT_LANG.to_string(),
-            description: act::core::types::LocalizedString::Plain(
-                "Dynamically exposes OpenAPI endpoints as ACT tools".to_string(),
-            ),
+            description: vec![(DEFAULT_LANG.to_string(), "Dynamically exposes OpenAPI endpoints as ACT tools".to_string())],
             capabilities: vec![act::core::types::Capability {
                 id: "wasi:http/outgoing-handler".to_string(),
                 required: true,
-                description: Some(act::core::types::LocalizedString::Plain(
-                    "HTTP client for fetching specs and making API calls".to_string(),
-                )),
+                description: Some(vec![(DEFAULT_LANG.to_string(), "HTTP client for fetching specs and making API calls".to_string())]),
                 metadata: vec![],
             }],
             metadata: vec![],
@@ -402,8 +421,9 @@ impl exports::act::core::tool_provider::Guest for OpenApiBridge {
             // Extract per-call headers from metadata
             let call_headers = request::extract_call_headers(&call.metadata);
 
-            // Get base URL from cached spec
-            let base_url = cache::get_base_url(&config.spec_url).unwrap_or_default();
+            // Get base URL from cached spec, resolved against spec URL origin
+            let raw_base = cache::get_base_url(&config.spec_url).unwrap_or_default();
+            let base_url = resolve_base_url(&config.spec_url, &raw_base);
 
             // Build the HTTP request
             let prepared = match request::build_request(
