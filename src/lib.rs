@@ -359,7 +359,7 @@ impl exports::act::core::tool_provider::Guest for OpenApiBridge {
     async fn call_tool(
         config: Option<Vec<u8>>,
         call: act::core::types::ToolCall,
-    ) -> act::core::types::CallResponse {
+    ) -> wit_bindgen::rt::async_support::StreamReader<act::core::types::StreamEvent> {
         let (mut writer, reader) = wit_stream::new::<act::core::types::StreamEvent>();
 
         wit_bindgen::spawn(async move {
@@ -450,9 +450,6 @@ impl exports::act::core::tool_provider::Guest for OpenApiBridge {
             send_api_request(prepared, &mut writer).await;
         });
 
-        act::core::types::CallResponse {
-            metadata: vec![],
-            body: reader,
-        }
+        reader
     }
 }
