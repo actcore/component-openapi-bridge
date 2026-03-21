@@ -1,6 +1,6 @@
-_commit: 36741aa
+_commit: 3379f6d
 _src_path: https://github.com/actcore/act-component-template
-project_name: openapi-bridge
 description: Dynamically exposes OpenAPI endpoints as ACT tools
-needs_http: true
 needs_filesystem: false
+needs_http: true
+project_name: openapi-bridge
