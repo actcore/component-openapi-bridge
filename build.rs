@@ -1,9 +1,10 @@
 fn main() {
-    let info = act_types::ComponentInfo::new(
+    let mut info = act_types::ComponentInfo::new(
         "openapi-bridge",
         "0.1.0",
         "Dynamically exposes OpenAPI endpoints as ACT tools",
     );
+    info.capabilities.http = Some(act_types::HttpCap {});
     let mut buf = Vec::new();
     ciborium::into_writer(&info, &mut buf).expect("CBOR encoding failed");
 
