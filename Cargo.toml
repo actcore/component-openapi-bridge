@@ -5,6 +5,10 @@ version = "0.1.4"
 edition = "2024"
 
 [package.metadata.act.std.capabilities."wasi:http"]
+description = "Dynamically exposes OpenAPI endpoints as ACT tools; calls whatever hosts the loaded spec declares."
+
+[[package.metadata.act.std.capabilities."wasi:http".allow]]
+host = "*"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
