@@ -8,6 +8,7 @@ registry := env("OCI_REGISTRY", "ghcr.io/actpkg")
 port := `npx get-port-cli`
 addr := "[::1]:" + port
 baseurl := "http://" + addr
+petstore_spec := env("PETSTORE_SPEC", "https://petstore3.swagger.io/api/v3/openapi.json")
 
 init:
     wit-deps
@@ -25,7 +26,10 @@ test:
     {{act}} run {{wasm}} --http --listen "{{addr}}" --http-policy open &
     trap "kill $!" EXIT
     npx wait-on -t 180s {{baseurl}}/info
-    {{hurl}} --test --variable "baseurl={{baseurl}}" e2e/*.hurl
+    {{hurl}} --test \
+      --variable "baseurl={{baseurl}}" \
+      --variable "petstore_spec={{petstore_spec}}" \
+      e2e/*.hurl
 
 publish:
     #!/usr/bin/env bash
