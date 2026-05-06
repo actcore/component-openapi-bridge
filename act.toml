@@ -1,8 +1,7 @@
 [std]
-
-
+name = "openapi-bridge"
 
 [std.capabilities."wasi:http"]
 
-
-
+[[std.capabilities."wasi:http".allow]]
+host = "*"
