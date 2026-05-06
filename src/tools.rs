@@ -298,7 +298,7 @@ mod tests {
         )
         .unwrap();
         let tools = extract_tools(&spec);
-        assert_eq!(tools[0].name, "delete_pets_by_petId");
+        assert_eq!(tools[0].name, "delete_pets_by_pet_id");
         assert!(tools[0].metadata_flags.destructive);
     }
 

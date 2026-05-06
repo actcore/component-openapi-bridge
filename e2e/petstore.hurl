@@ -1,8 +1,27 @@
-# Swagger Petstore 3.0 — public OpenAPI spec
+# Swagger Petstore 3.0 — public OpenAPI spec, exercised over the
+# session-based bridge.
 
-# List tools from petstore spec
+# open-session args schema (driven by BridgeConfig / schemars).
+POST {{baseurl}}/sessions/open-args-schema
+{}
+HTTP 200
+[Asserts]
+jsonpath "$.type" == "object"
+jsonpath "$.properties.spec_url" exists
+
+# Open a session for the petstore spec. open-session pre-fetches and
+# parses the spec, so connect / parse failures surface here.
+POST {{baseurl}}/sessions
+{"arguments": {"spec_url": "{{petstore_spec}}"}}
+HTTP 201
+[Asserts]
+jsonpath "$.id" matches "openapi_\\d+"
+[Captures]
+session_id: jsonpath "$.id"
+
+# list-tools — bridge resolves the cached spec, returns operation tools.
 POST {{baseurl}}/tools
-{"metadata": {"spec_url": "{{petstore_spec}}"}}
+{"metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 200
 [Asserts]
 jsonpath "$.tools" count >= 10
@@ -16,26 +35,23 @@ jsonpath "$.tools[*].name" contains "delete_order"
 
 # --- GET with query parameter ---
 
-# Find pets by status
 POST {{baseurl}}/tools/find_pets_by_status
-{"arguments": {"status": "sold"}, "metadata": {"spec_url": "{{petstore_spec}}"}}
+{"arguments": {"status": "sold"}, "metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 200
 [Asserts]
 jsonpath "$.content" count >= 1
 jsonpath "$.content[0].mime_type" == "application/json"
 
-# Login user (multiple query params)
 POST {{baseurl}}/tools/login_user
-{"arguments": {"username": "test", "password": "test"}, "metadata": {"spec_url": "{{petstore_spec}}"}}
+{"arguments": {"username": "test", "password": "test"}, "metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 200
 [Asserts]
 jsonpath "$.content[0].data" contains "Logged in"
 
 # --- POST with request body ---
 
-# Add a pet
 POST {{baseurl}}/tools/add_pet
-{"arguments": {"id": 99887, "name": "TestDog", "status": "available", "photoUrls": ["http://example.com/dog.jpg"]}, "metadata": {"spec_url": "{{petstore_spec}}"}}
+{"arguments": {"id": 99887, "name": "TestDog", "status": "available", "photoUrls": ["http://example.com/dog.jpg"]}, "metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 200
 [Asserts]
 jsonpath "$.content[0].data" contains "TestDog"
@@ -43,9 +59,8 @@ jsonpath "$.content[0].data" contains "99887"
 
 # --- PUT with request body ---
 
-# Update the pet
 POST {{baseurl}}/tools/update_pet
-{"arguments": {"id": 99887, "name": "TestDogUpdated", "status": "sold", "photoUrls": ["http://example.com/dog2.jpg"]}, "metadata": {"spec_url": "{{petstore_spec}}"}}
+{"arguments": {"id": 99887, "name": "TestDogUpdated", "status": "sold", "photoUrls": ["http://example.com/dog2.jpg"]}, "metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 200
 [Asserts]
 jsonpath "$.content[0].data" contains "TestDogUpdated"
@@ -53,54 +68,53 @@ jsonpath "$.content[0].data" contains "sold"
 
 # --- GET with path parameter ---
 
-# Verify the update
 POST {{baseurl}}/tools/get_pet_by_id
-{"arguments": {"petId": 99887}, "metadata": {"spec_url": "{{petstore_spec}}"}}
+{"arguments": {"petId": 99887}, "metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 200
 [Asserts]
 jsonpath "$.content[0].data" contains "TestDogUpdated"
 
 # --- DELETE with path parameter ---
 
-# Delete the pet
 POST {{baseurl}}/tools/delete_pet
-{"arguments": {"petId": 99887}, "metadata": {"spec_url": "{{petstore_spec}}"}}
+{"arguments": {"petId": 99887}, "metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 200
 
 # --- Store: POST + GET + DELETE cycle ---
 
-# Place an order
 POST {{baseurl}}/tools/place_order
-{"arguments": {"id": 77788, "petId": 1, "quantity": 1, "status": "placed", "complete": true}, "metadata": {"spec_url": "{{petstore_spec}}"}}
+{"arguments": {"id": 77788, "petId": 1, "quantity": 1, "status": "placed", "complete": true}, "metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 200
 [Asserts]
 jsonpath "$.content[0].data" contains "77788"
 jsonpath "$.content[0].data" contains "placed"
 
-# Get the order
 POST {{baseurl}}/tools/get_order_by_id
-{"arguments": {"orderId": 77788}, "metadata": {"spec_url": "{{petstore_spec}}"}}
+{"arguments": {"orderId": 77788}, "metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 200
 [Asserts]
 jsonpath "$.content[0].data" contains "77788"
 
-# Delete the order
 POST {{baseurl}}/tools/delete_order
-{"arguments": {"orderId": 77788}, "metadata": {"spec_url": "{{petstore_spec}}"}}
+{"arguments": {"orderId": 77788}, "metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 200
 
 # --- Error cases ---
 
-# Non-existent tool returns 404
+# Non-existent tool returns 404 (std:not-found).
 POST {{baseurl}}/tools/doesNotExist
-{"arguments": {}, "metadata": {"spec_url": "{{petstore_spec}}"}}
+{"arguments": {}, "metadata": {"std:session-id": "{{session_id}}"}}
 HTTP 404
 [Asserts]
 jsonpath "$.error.kind" == "std:not-found"
 
-# Missing metadata returns error
+# Close the session.
+DELETE {{baseurl}}/sessions/{{session_id}}
+HTTP 204
+
+# After close, calls referencing the id surface std:session-not-found (404).
 POST {{baseurl}}/tools/find_pets_by_status
-{"arguments": {"status": "sold"}}
-HTTP 422
+{"arguments": {"status": "sold"}, "metadata": {"std:session-id": "{{session_id}}"}}
+HTTP 404
 [Asserts]
-jsonpath "$.error.kind" == "std:invalid-args"
+jsonpath "$.error.kind" == "std:session-not-found"

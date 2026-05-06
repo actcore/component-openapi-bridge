@@ -1,12 +1,13 @@
 use serde::Deserialize;
 use std::collections::BTreeMap;
 
-/// Bridge config passed via ACT config.
-#[derive(Deserialize, schemars::JsonSchema)]
+/// Per-session bridge config — populated from `open-session.args`.
+#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[schemars(crate = "schemars", title = "openapi-bridge open-session args")]
 pub struct BridgeConfig {
-    /// URL to the OpenAPI spec (JSON or YAML)
+    /// URL to the OpenAPI spec (JSON or YAML).
     pub spec_url: String,
-    /// Default headers to send with every API request
+    /// Default headers to send with every API request — typically auth.
     #[serde(default)]
     pub headers: BTreeMap<String, String>,
 }
