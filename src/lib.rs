@@ -350,9 +350,9 @@ impl tool_exports::Guest for OpenApiBridge {
                     Ok(v) => v,
                     Err(e) => {
                         let _ = writer
-                            .write_all(vec![tool_exports::ToolEvent::Error(invalid_args(
-                                format!("Invalid arguments: {e}"),
-                            ))])
+                            .write_all(vec![tool_exports::ToolEvent::Error(invalid_args(format!(
+                                "Invalid arguments: {e}"
+                            )))])
                             .await;
                         return;
                     }
@@ -415,15 +415,13 @@ impl session_exports::Guest for OpenApiBridge {
                 json_map.insert(k.clone(), val);
             }
         }
-        let config: BridgeConfig =
-            serde_json::from_value(serde_json::Value::Object(json_map)).map_err(|e| {
-                session_exports::Error {
-                    kind: act_types::constants::ERR_INVALID_ARGS.to_string(),
-                    message: tool_exports::LocalizedString::Plain(format!(
-                        "Invalid open-session args: {e}"
-                    )),
-                    metadata: vec![],
-                }
+        let config: BridgeConfig = serde_json::from_value(serde_json::Value::Object(json_map))
+            .map_err(|e| session_exports::Error {
+                kind: act_types::constants::ERR_INVALID_ARGS.to_string(),
+                message: tool_exports::LocalizedString::Plain(format!(
+                    "Invalid open-session args: {e}"
+                )),
+                metadata: vec![],
             })?;
 
         // Pre-fetch the spec so list-tools is cheap and connect / parse
