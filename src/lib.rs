@@ -311,7 +311,7 @@ impl tool_exports::Guest for OpenApiBridge {
 
         let (mut writer, reader) = wit_stream::new::<tool_exports::ToolEvent>();
 
-        wit_bindgen::spawn(async move {
+        wit_bindgen::spawn_local(async move {
             // Resolve the operation. open-session pre-fetched the spec,
             // so this should hit the cache; fall through to a refetch if
             // the cache was evicted.
