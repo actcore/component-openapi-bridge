@@ -16,7 +16,7 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: moonrepo/setup-rust@v1
         with:
           bins: wit-deps-cli
@@ -34,7 +34,7 @@ jobs:
     name: Clippy
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: moonrepo/setup-rust@v1
         with:
           bins: wit-deps-cli
@@ -57,7 +57,7 @@ jobs:
     env:
       PETSTORE_SPEC: http://localhost:8080/api/v3/openapi.json
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: component.wasm
@@ -71,7 +71,7 @@ jobs:
     name: Format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: moonrepo/setup-rust@v1
       - run: cargo fmt -- --check
 
@@ -85,7 +85,7 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: actions/download-artifact@v8
         with:
           name: component.wasm
