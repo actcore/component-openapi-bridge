@@ -29,6 +29,11 @@ use std::collections::HashMap;
 
 use exports::act::sessions::session_provider as session_exports;
 use exports::act::tools::tool_provider as tool_exports;
+// In act:tools@0.2.0 the data model moved to a function-free `types`
+// interface; `localized-string` lives in act:core. The `tool-provider`
+// export module no longer re-exports these, so reference them directly.
+use act::tools::types::{ContentPart, ToolDefinition};
+use act::core::types::LocalizedString;
 
 // ── Per-session state ──────────────────────────────────────────────────────
 
@@ -72,7 +77,7 @@ fn extract_session_id(metadata: &[(String, Vec<u8>)]) -> Option<String> {
 fn make_error(kind: &str, msg: String) -> tool_exports::Error {
     tool_exports::Error {
         kind: kind.to_string(),
-        message: tool_exports::LocalizedString::Plain(msg),
+        message: LocalizedString::Plain(msg),
         metadata: vec![],
     }
 }
@@ -148,7 +153,7 @@ async fn get_or_fetch_tools(config: &BridgeConfig) -> Result<Vec<tools::Resolved
 }
 
 /// Convert a ResolvedTool to a WIT ToolDefinition.
-fn to_wit_tool(tool: &tools::ResolvedTool) -> tool_exports::ToolDefinition {
+fn to_wit_tool(tool: &tools::ResolvedTool) -> ToolDefinition {
     let mut metadata = Vec::new();
 
     if tool.metadata_flags.read_only {
@@ -174,9 +179,9 @@ fn to_wit_tool(tool: &tools::ResolvedTool) -> tool_exports::ToolDefinition {
     let schema_str =
         serde_json::to_string(&schema).unwrap_or_else(|_| r#"{"type":"object"}"#.to_string());
 
-    tool_exports::ToolDefinition {
+    ToolDefinition {
         name: tool.name.clone(),
-        description: tool_exports::LocalizedString::Plain(tool.description.clone()),
+        description: LocalizedString::Plain(tool.description.clone()),
         parameters_schema: schema_str,
         metadata,
     }
@@ -236,7 +241,7 @@ async fn send_api_request(
     while let Some(chunk) = body.chunk().await {
         let _ = writer
             .write_all(vec![tool_exports::ToolEvent::Content(
-                tool_exports::ContentPart {
+                ContentPart {
                     data: chunk.to_vec(),
                     mime_type: content_type.clone(),
                     metadata: vec![],
@@ -277,7 +282,7 @@ impl tool_exports::Guest for OpenApiBridge {
             .await
             .map_err(|e| make_error(act_types::constants::ERR_INTERNAL, e))?;
 
-        let tool_defs: Vec<tool_exports::ToolDefinition> =
+        let tool_defs: Vec<ToolDefinition> =
             resolved.iter().map(to_wit_tool).collect();
 
         Ok(tool_exports::ListToolsResponse {
@@ -398,7 +403,7 @@ impl session_exports::Guest for OpenApiBridge {
         let schema = schemars::schema_for!(BridgeConfig);
         serde_json::to_string(&schema).map_err(|e| session_exports::Error {
             kind: act_types::constants::ERR_INTERNAL.to_string(),
-            message: tool_exports::LocalizedString::Plain(format!(
+            message: LocalizedString::Plain(format!(
                 "Schema serialization failed: {e}"
             )),
             metadata: vec![],
@@ -418,7 +423,7 @@ impl session_exports::Guest for OpenApiBridge {
         let config: BridgeConfig = serde_json::from_value(serde_json::Value::Object(json_map))
             .map_err(|e| session_exports::Error {
                 kind: act_types::constants::ERR_INVALID_ARGS.to_string(),
-                message: tool_exports::LocalizedString::Plain(format!(
+                message: LocalizedString::Plain(format!(
                     "Invalid open-session args: {e}"
                 )),
                 metadata: vec![],
@@ -430,7 +435,7 @@ impl session_exports::Guest for OpenApiBridge {
             .await
             .map_err(|e| session_exports::Error {
                 kind: act_types::constants::ERR_INTERNAL.to_string(),
-                message: tool_exports::LocalizedString::Plain(e),
+                message: LocalizedString::Plain(e),
                 metadata: vec![],
             })?;
 
