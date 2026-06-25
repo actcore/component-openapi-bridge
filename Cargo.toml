@@ -1,7 +1,7 @@
 [package]
 name = "openapi-bridge"
 description = "Dynamically exposes OpenAPI endpoints as ACT tools"
-version = "0.2.1"
+version = "0.2.2"
 edition = "2024"
 
 [dependencies]
@@ -13,7 +13,7 @@ act-types = "0.12"
 ciborium = "0.2"
 url = "2"
 http = "1"
-wasi-fetch = "0.1.3"
+wasi-fetch = "0.2.0"
 wit-bindgen = { version = "0.58", features = ["async-spawn"] }
 convert_case = "0.11"
 
