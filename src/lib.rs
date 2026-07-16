@@ -32,8 +32,8 @@ use exports::act::tools::tool_provider as tool_exports;
 // In act:tools@0.2.0 the data model moved to a function-free `types`
 // interface; `localized-string` lives in act:core. The `tool-provider`
 // export module no longer re-exports these, so reference them directly.
-use act::tools::types::{ContentPart, ToolDefinition};
 use act::core::types::LocalizedString;
+use act::tools::types::{ContentPart, ToolDefinition};
 
 // ── Per-session state ──────────────────────────────────────────────────────
 
@@ -240,13 +240,11 @@ async fn send_api_request(
     let mut body = response.into_body();
     while let Some(chunk) = body.chunk().await {
         let _ = writer
-            .write_all(vec![tool_exports::ToolEvent::Content(
-                ContentPart {
-                    data: chunk.to_vec(),
-                    mime_type: content_type.clone(),
-                    metadata: vec![],
-                },
-            )])
+            .write_all(vec![tool_exports::ToolEvent::Content(ContentPart {
+                data: chunk.to_vec(),
+                mime_type: content_type.clone(),
+                metadata: vec![],
+            })])
             .await;
     }
 }
@@ -282,8 +280,7 @@ impl tool_exports::Guest for OpenApiBridge {
             .await
             .map_err(|e| make_error(act_types::constants::ERR_INTERNAL, e))?;
 
-        let tool_defs: Vec<ToolDefinition> =
-            resolved.iter().map(to_wit_tool).collect();
+        let tool_defs: Vec<ToolDefinition> = resolved.iter().map(to_wit_tool).collect();
 
         Ok(tool_exports::ListToolsResponse {
             metadata: vec![],
@@ -403,9 +400,7 @@ impl session_exports::Guest for OpenApiBridge {
         let schema = schemars::schema_for!(BridgeConfig);
         serde_json::to_string(&schema).map_err(|e| session_exports::Error {
             kind: act_types::constants::ERR_INTERNAL.to_string(),
-            message: LocalizedString::Plain(format!(
-                "Schema serialization failed: {e}"
-            )),
+            message: LocalizedString::Plain(format!("Schema serialization failed: {e}")),
             metadata: vec![],
         })
     }
@@ -423,9 +418,7 @@ impl session_exports::Guest for OpenApiBridge {
         let config: BridgeConfig = serde_json::from_value(serde_json::Value::Object(json_map))
             .map_err(|e| session_exports::Error {
                 kind: act_types::constants::ERR_INVALID_ARGS.to_string(),
-                message: LocalizedString::Plain(format!(
-                    "Invalid open-session args: {e}"
-                )),
+                message: LocalizedString::Plain(format!("Invalid open-session args: {e}")),
                 metadata: vec![],
             })?;
 
