@@ -64,12 +64,15 @@ jobs:
           path: target/wasm32-wasip2/release/
       - uses: moonrepo/setup-rust@v1
         with:
-          bins: wkg, just, hurl
+          bins: wkg, just
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: astral-sh/setup-uv@v6
       - run: just init
-      - name: Wait for petstore sidecar
-        run: curl --retry 60 --retry-connrefused --retry-delay 1 -fsS -o /dev/null ${{ env.PETSTORE_SPEC }}
+      # e2e/conftest.py's `petstore_spec_url` fixture does its own
+      # curl-retry-equivalent wait before any test opens a session, so it no
+      # longer needs to happen as a separate CI step first — it holds for a
+      # local `just test` run too, not only when this step ran before it.
       - run: just test
 
   publish:

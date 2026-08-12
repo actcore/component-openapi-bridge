@@ -2,12 +2,7 @@ wasm := "target/wasm32-wasip2/release/openapi_bridge.wasm"
 
 act := env("ACT", "npx @actcore/act")
 actbuild := env("ACT_BUILD", "npx @actcore/act-build")
-hurl := env("HURL", "hurl")
 registry := env("OCI_REGISTRY", "actpkg.dev/library")
-port := `shuf -i 10000-29999 -n 1`
-addr := "[::1]:" + port
-baseurl := "http://" + addr
-petstore_spec := env("PETSTORE_SPEC", "https://petstore3.swagger.io/api/v3/openapi.json")
 
 # Fetch WIT deps from the registry (ghcr.io/actcore) into wit/deps/.
 # wkg-registry.toml maps the act namespace -> actcore.dev (well-known -> ghcr.io/actcore).
@@ -21,16 +16,8 @@ build:
     cargo build --release
     {{actbuild}} pack {{wasm}}
 
-test:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    {{act}} run {{wasm}} --http --listen "{{addr}}" --allow wasi:http &
-    trap "kill $!" EXIT
-    curl --retry 60 --retry-connrefused --retry-delay 1 -fsS -o /dev/null {{baseurl}}/info
-    {{hurl}} --test \
-      --variable "baseurl={{baseurl}}" \
-      --variable "petstore_spec={{petstore_spec}}" \
-      e2e/*.hurl
+test: build
+    ACT="{{act}}" uv run --project e2e pytest e2e/ -v
 
 publish:
     #!/usr/bin/env bash
